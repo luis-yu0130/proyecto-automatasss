@@ -31,6 +31,8 @@ namespace proyecto_automatas
         public Form1()
         {
             InitializeComponent();
+            this.Load += Form1_Load;
+
         }
 
         // Analizador léxico: convierte la expresión en una lista de tokens
@@ -61,61 +63,95 @@ namespace proyecto_automatas
             }
         }
 
+        private List<string> pasosDerivacion = new List<string>(); // Declarar nueva lista
+
         private double Expresion(NodoArbol nodoActual = null)
         {
+            pasosDerivacion.Clear();
+            pasosDerivacion.Add("Expresión");
+            pasosDerivacion.Add("Expresión → Expresión + Término");
+
+            string derivacionActual = "Expresión";
+            pasosDerivacion.Add(derivacionActual);
+
+            derivacionActual = derivacionActual.Replace("Expresión", "Expresión + Término");
+            pasosDerivacion.Add(derivacionActual);
+
+            derivacionActual = derivacionActual.Replace("Expresión", "Término");
+            pasosDerivacion.Add(derivacionActual);
+
             var nodo = nodoActual ?? new NodoArbol("Expresión");
             if (raizArbol == null) raizArbol = nodo;
+            tablaDerivacion.Add("Expresión");
 
             var primerTermino = new NodoArbol("Término");
             nodo.Hijos.Add(primerTermino);
             double resultado = Termino(primerTermino);
 
-            while (TokenActual == "+" || TokenActual == "-")
+            if (TokenActual == "+" || TokenActual == "-")
             {
-                string operador = TokenActual;
-                var nodoOperador = new NodoArbol(operador);
-                nodo.Hijos.Add(nodoOperador);
+                while (TokenActual == "+" || TokenActual == "-")
+                {
+                    string operador = TokenActual;
+                    nodo.Hijos.Add(new NodoArbol(operador));
+                    tablaDerivacion.Add("Expresión → Expresión " + operador + " Término");
 
-                GetNextToken();
-                var siguienteTermino = new NodoArbol("Término");
-                nodo.Hijos.Add(siguienteTermino);
-                double segundoOperando = Termino(siguienteTermino);
+                    GetNextToken();
 
-                if (operador == "+")
-                    resultado += segundoOperando;
-                else
-                    resultado -= segundoOperando;
+                    var siguienteTermino = new NodoArbol("Término");
+                    nodo.Hijos.Add(siguienteTermino);
+                    double segundoOperando = Termino(siguienteTermino);
+
+                    resultado = operador == "+" ? resultado + segundoOperando : resultado - segundoOperando;
+                }
+            }
+            else
+            {
+                tablaDerivacion.Add("Expresión → Término");
+                listBoxDerivacion.Items.Clear();
+
+                int maxFilas = Math.Max(tablaDerivacion.Count, pasosDerivacion.Count);
+
+                for (int i = 0; i < maxFilas; i++)
+                {
+                    string regla = i < tablaDerivacion.Count ? tablaDerivacion[i] : "";
+                    string paso = i < pasosDerivacion.Count ? pasosDerivacion[i] : "";
+
+                    ListViewItem item = new ListViewItem(regla);
+                    item.SubItems.Add(paso);
+                    listBoxDerivacion.Items.Add(item);
+                }
+
             }
 
             nodo.Resultado = resultado;
             return resultado;
         }
-
         private double Termino(NodoArbol nodoActual)
         {
             var primerFactor = new NodoArbol("Factor");
             nodoActual.Hijos.Add(primerFactor);
             double resultado = Factor(primerFactor);
 
-            while (TokenActual == "*" || TokenActual == "/")
+            if (TokenActual == "*" || TokenActual == "/")
             {
-                string operador = TokenActual;
-                var nodoOperador = new NodoArbol(operador);
-                nodoActual.Hijos.Add(nodoOperador);
-
-                GetNextToken();
-                var siguienteFactor = new NodoArbol("Factor");
-                nodoActual.Hijos.Add(siguienteFactor);
-                double segundoOperando = Factor(siguienteFactor);
-
-                if (operador == "*")
-                    resultado *= segundoOperando;
-                else
+                while (TokenActual == "*" || TokenActual == "/")
                 {
-                    if (segundoOperando == 0)
-                        throw new DivideByZeroException("División por cero no permitida");
-                    resultado /= segundoOperando;
+                    string operador = TokenActual;
+                    nodoActual.Hijos.Add(new NodoArbol(operador));
+                    tablaDerivacion.Add("Término → Término " + operador + " Factor");
+
+                    GetNextToken();
+                    var siguienteFactor = new NodoArbol("Factor");
+                    nodoActual.Hijos.Add(siguienteFactor);
+                    double segundoOperando = Factor(siguienteFactor);
+
+                    resultado = operador == "*" ? resultado * segundoOperando : resultado / segundoOperando;
                 }
+            }
+            else
+            {
+                tablaDerivacion.Add("Término → Factor");
             }
 
             nodoActual.Resultado = resultado;
@@ -128,7 +164,9 @@ namespace proyecto_automatas
 
             if (TokenActual == "(")
             {
-                nodoActual.Valor = "( )";
+                nodoActual.Valor = "Factor";
+                tablaDerivacion.Add("Factor → ( Expresión )");
+
                 GetNextToken();
                 var expresionInterna = new NodoArbol("Expresión");
                 nodoActual.Hijos.Add(expresionInterna);
@@ -141,7 +179,16 @@ namespace proyecto_automatas
             }
             else if (double.TryParse(TokenActual, out resultado))
             {
-                nodoActual.Valor = TokenActual;
+                nodoActual.Valor = "Factor";
+                tablaDerivacion.Add("Factor → Número");
+                tablaDerivacion.Add("Número → Dígito");
+                tablaDerivacion.Add("Dígito → " + TokenActual);
+
+                var nodoNumero = new NodoArbol("Número");
+                var nodoValor = new NodoArbol("Dígito → " + TokenActual);
+                nodoNumero.Hijos.Add(nodoValor);
+                nodoActual.Hijos.Add(nodoNumero);
+
                 GetNextToken();
             }
             else
@@ -153,6 +200,8 @@ namespace proyecto_automatas
             {
                 var nodoExponente = new NodoArbol("^");
                 nodoActual.Hijos.Add(nodoExponente);
+                tablaDerivacion.Add("Factor → Factor ^ Factor");
+
                 GetNextToken();
                 var factorExponente = new NodoArbol("Factor");
                 nodoActual.Hijos.Add(factorExponente);
@@ -160,13 +209,13 @@ namespace proyecto_automatas
                 resultado = Math.Pow(resultado, exponente);
             }
 
-            nodoActual.Resultado = resultado;
             return resultado;
         }
 
+
         private void MostrarArbolEnTreeView(NodoArbol nodo, TreeNode nodoPadre)
         {
-            string etiqueta = $"{nodo.Valor} [{nodo.Resultado}]";
+            string etiqueta = nodo.Valor;
             TreeNode nuevoNodo = nodoPadre == null ?
                 treeViewDerivacion.Nodes.Add(etiqueta) :
                 nodoPadre.Nodes.Add(etiqueta);
@@ -176,6 +225,8 @@ namespace proyecto_automatas
                 MostrarArbolEnTreeView(hijo, nuevoNodo);
             }
         }
+
+        private List<string> tablaDerivacion = new List<string>();
 
         private void button11_Click(object sender, EventArgs e)
         {
@@ -324,6 +375,7 @@ namespace proyecto_automatas
                 ListaDeToken = AnalizadorLexico(expresion);
                 pos = 0;
                 raizArbol = null;
+                tablaDerivacion.Clear();
                 GetNextToken();
 
                 double resultado = Expresion();
@@ -331,15 +383,32 @@ namespace proyecto_automatas
                 if (TokenActual != null)
                     throw new Exception("Tokens adicionales después del final de la expresión");
 
-                // Actualizar TreeView
+                // Actualizar árbol
                 treeViewDerivacion.Nodes.Clear();
                 MostrarArbolEnTreeView(raizArbol, null);
                 treeViewDerivacion.ExpandAll();
 
-                // Actualizar historial
+                // Mostrar tabla de derivación
+                listBoxDerivacion.Items.Clear();
+                foreach (string regla in tablaDerivacion)
+                {
+                    listBoxDerivacion.Items.Add(regla);
+                }
+                tablaDerivacion.Clear();
+
+                // Historial
                 string entradaHistorial = $"{expresion} = {resultado}";
                 listBoxHistorial.Items.Insert(0, entradaHistorial);
 
+                int maxFilas = Math.Max(tablaDerivacion.Count, pasosDerivacion.Count);
+
+                for (int i = 0; i < maxFilas; i++)
+                {
+                    string produccion = i < tablaDerivacion.Count ? tablaDerivacion[i] : "";
+                    string paso = i < pasosDerivacion.Count ? pasosDerivacion[i] : "";
+
+
+                }
                 MessageBox.Show($"Resultado: {resultado}", "Análisis Sintáctico Exitoso");
             }
             catch (Exception ex)
@@ -389,6 +458,59 @@ namespace proyecto_automatas
                 textBox1.Text = ""; // No mostrar "Error", solo vaciar
             }
 
+        }
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // Configurar columnas para mostrar Producción + Cadena derivada estilo JFLAP
+            listBoxDerivacionJF.Items.Clear();
+            foreach (string paso in pasosDerivacion)
+            {
+                listBoxDerivacionJF.Items.Add(paso);
+            }
+
+            // Botones numéricos (texto negro)
+            Button[] botonesNumeros = {
+        button14, // 1
+        button15, // 2
+        button16, // 3
+        button10, // 4
+        button11, // 5
+        button12, // 6
+        button6,  // 7
+        button7,  // 8
+        button8,  // 9
+        button18, // 0
+        button19, // 00
+        button20  // .
+    };
+
+            // Botones de operadores y signos (texto blanco)
+            Button[] botonesOperadores = {
+        button21, // +
+        button17, // -
+        button13, // *
+        button9,  // /
+        button5,  // ^
+        button2,  // (
+        button3,  // )
+        button4   // C (retroceso)
+    };
+
+            // Aplicar estilo a números
+            foreach (var btn in botonesNumeros)
+            {
+                btn.BackColor = Color.LightSkyBlue;
+                btn.ForeColor = Color.Black;
+                btn.FlatStyle = FlatStyle.Flat;
+            }
+
+            // Aplicar estilo a operadores
+            foreach (var btn in botonesOperadores)
+            {
+                btn.BackColor = Color.SteelBlue;
+                btn.ForeColor = Color.White;
+                btn.FlatStyle = FlatStyle.Flat;
+            }
         }
     }
 }

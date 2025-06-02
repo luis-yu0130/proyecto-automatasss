@@ -84,10 +84,13 @@
             tabPage1 = new TabPage();
             tabPage2 = new TabPage();
             tabPage3 = new TabPage();
+            listBoxDerivacion = new ListBox();
             tabPage4 = new TabPage();
+            listBoxDerivacionJF = new ListBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tabPage2.SuspendLayout();
+            tabPage3.SuspendLayout();
             tabPage4.SuspendLayout();
             SuspendLayout();
             // 
@@ -399,12 +402,21 @@
             // 
             // tabPage3
             // 
+            tabPage3.Controls.Add(listBoxDerivacionJF);
+            tabPage3.Controls.Add(listBoxDerivacion);
             tabPage3.Location = new Point(4, 26);
             tabPage3.Name = "tabPage3";
             tabPage3.Size = new Size(602, 305);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "Tabla de derivacion";
             tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // listBoxDerivacion
+            // 
+            listBoxDerivacion.Location = new Point(-2, -3);
+            listBoxDerivacion.Name = "listBoxDerivacion";
+            listBoxDerivacion.Size = new Size(269, 310);
+            listBoxDerivacion.TabIndex = 26;
             // 
             // tabPage4
             // 
@@ -415,6 +427,13 @@
             tabPage4.TabIndex = 3;
             tabPage4.Text = "Historial de Expresion";
             tabPage4.UseVisualStyleBackColor = true;
+            // 
+            // listBoxDerivacionJF
+            // 
+            listBoxDerivacionJF.Location = new Point(266, -1);
+            listBoxDerivacionJF.Name = "listBoxDerivacionJF";
+            listBoxDerivacionJF.Size = new Size(340, 310);
+            listBoxDerivacionJF.TabIndex = 27;
             // 
             // Form1
             // 
@@ -432,6 +451,7 @@
             tabControl1.ResumeLayout(false);
             tabPage1.ResumeLayout(false);
             tabPage2.ResumeLayout(false);
+            tabPage3.ResumeLayout(false);
             tabPage4.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
@@ -448,5 +468,7 @@
         private TabPage tabPage2;
         private TabPage tabPage3;
         private TabPage tabPage4;
+        private ListBox listBoxDerivacion;
+        private ListBox listBoxDerivacionJF;
     }
 }
